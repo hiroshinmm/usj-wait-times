@@ -11,23 +11,72 @@ from database import init_db, query_all_history, query_attraction_list, query_hi
 st.set_page_config(page_title="USJ 待ち時間ダッシュボード", page_icon="🎢", layout="wide")
 init_db()
 
+# ---- 粒度テーブル: (最大日数, resamplefreq, 表示ラベル) ----
+_GRANULARITY = [
+    (1,  "5min",  "5分単位"),
+    (3,  "30min", "30分平均"),
+    (7,  "1h",    "1時間平均"),
+    (30, "3h",    "3時間平均"),
+]
+
+
+def _freq_for(days: int) -> str:
+    return next((f for d, f, _ in _GRANULARITY if days <= d), "1D")
+
+
+def _label_for(days: int) -> str:
+    return next((l for d, _, l in _GRANULARITY if days <= d), "日次平均")
+
+
+def resample_trend(df: pd.DataFrame, days: int) -> pd.DataFrame:
+    freq = _freq_for(days)
+    if freq == "5min":
+        return df
+    return (
+        df.set_index("fetched_at_jst")
+        .groupby("attraction_name")["wait_minutes"]
+        .resample(freq)
+        .mean()
+        .round(1)
+        .reset_index()
+    )
+
+
 # ---- サイドバー ----
 st.sidebar.title("設定")
 
-period_options = {
-    "今日": 0,
-    "直近3日": 2,
-    "直近1週間": 6,
-    "直近1ヶ月": 29,
-    "直近3ヶ月": 89,
-}
-period_label = st.sidebar.selectbox("表示期間", list(period_options.keys()))
-days_back = period_options[period_label]
+today_jst = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
 
-now_jst = datetime.now(timezone.utc) + timedelta(hours=9)
-end_dt = datetime.now(timezone.utc)
-start_dt = end_dt - timedelta(days=days_back)
+date_range = st.sidebar.date_input(
+    "表示期間",
+    value=(today_jst, today_jst),
+    max_value=today_jst,
+)
 
+if isinstance(date_range, (list, tuple)):
+    start_date = date_range[0]
+    end_date = date_range[-1]
+else:
+    start_date = end_date = date_range
+
+days_diff = (end_date - start_date).days + 1
+
+# JST日付 → UTC datetime（DBはUTC保存）
+start_dt = datetime.combine(start_date, datetime.min.time()) - timedelta(hours=9)
+end_dt   = datetime.combine(end_date,   datetime.max.time()) - timedelta(hours=9)
+
+# アトラクション選択
+st.sidebar.markdown("---")
+attraction_df = query_attraction_list()
+all_names = attraction_df["attraction_name"].tolist() if not attraction_df.empty else []
+selected_names = st.sidebar.multiselect(
+    "アトラクション",
+    options=all_names,
+    default=all_names[:5] if len(all_names) >= 5 else all_names,
+    placeholder="アトラクションを選択...",
+)
+
+st.sidebar.markdown("---")
 auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=True)
 if auto_refresh:
     st_autorefresh(interval=300_000, key="autorefresh")
@@ -36,10 +85,11 @@ st.sidebar.markdown("---")
 st.sidebar.caption("データソース: [themeparks.wiki](https://themeparks.wiki)")
 
 # ---- メインタイトル ----
+now_jst = datetime.now(timezone.utc) + timedelta(hours=9)
 st.title("🎢 USJ 待ち時間ダッシュボード")
 st.caption(f"最終更新: {now_jst.strftime('%Y-%m-%d %H:%M')} JST")
 
-# ---- 最新スナップショット ----
+# ---- 現在の待ち時間 ----
 st.header("現在の待ち時間")
 df_latest = query_latest()
 
@@ -87,54 +137,52 @@ else:
     col2.metric("最長待ち時間", f"{int(df_operating['wait_minutes'].max())} 分")
     col3.metric("平均待ち時間", f"{df_operating['wait_minutes'].mean():.0f} 分")
 
-# ---- 時系列グラフ ----
-st.header("待ち時間の推移")
+# ---- 待ち時間の推移 ----
+granularity = _label_for(days_diff)
+st.header(f"待ち時間の推移　（{granularity}）")
 
-attraction_df = query_attraction_list()
-if not attraction_df.empty:
-    selected_names = st.multiselect(
-        "アトラクションを選択",
-        options=attraction_df["attraction_name"].tolist(),
-        default=attraction_df["attraction_name"].tolist()[:5],
-    )
-
-    if selected_names:
-        selected_ids = attraction_df[attraction_df["attraction_name"].isin(selected_names)]["attraction_id"].tolist()
-        frames = []
-        for aid in selected_ids:
-            df_h = query_history(aid, start_dt, end_dt)
-            if not df_h.empty:
-                name = attraction_df[attraction_df["attraction_id"] == aid]["attraction_name"].iloc[0]
-                df_h["attraction_name"] = name
-                df_h["fetched_at_jst"] = df_h["fetched_at"] + pd.Timedelta(hours=9)
-                frames.append(df_h)
-
-        if frames:
-            df_trend = pd.concat(frames, ignore_index=True)
-            fig_line = px.line(
-                df_trend,
-                x="fetched_at_jst",
-                y="wait_minutes",
-                color="attraction_name",
-                labels={"fetched_at_jst": "時刻 (JST)", "wait_minutes": "待ち時間 (分)", "attraction_name": "アトラクション"},
-                markers=True,
-            )
-            fig_line.update_layout(
-                height=400,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                plot_bgcolor="white",
-                xaxis=dict(showgrid=True, gridcolor="#f0f0f0"),
-                yaxis=dict(showgrid=True, gridcolor="#f0f0f0"),
-            )
-            st.plotly_chart(fig_line, use_container_width=True)
-        else:
-            st.info("選択期間内のデータがありません。")
-    else:
-        st.info("アトラクションを選択してください。")
-else:
+if not selected_names:
+    st.info("サイドバーでアトラクションを選択してください。")
+elif attraction_df.empty:
     st.info("アトラクションデータがありません。")
+else:
+    selected_ids = attraction_df[attraction_df["attraction_name"].isin(selected_names)]["attraction_id"].tolist()
+    frames = []
+    for aid in selected_ids:
+        df_h = query_history(aid, start_dt, end_dt)
+        if not df_h.empty:
+            name = attraction_df[attraction_df["attraction_id"] == aid]["attraction_name"].iloc[0]
+            df_h["attraction_name"] = name
+            df_h["fetched_at_jst"] = df_h["fetched_at"] + pd.Timedelta(hours=9)
+            frames.append(df_h)
 
-# ---- ヒートマップ ----
+    if frames:
+        df_trend = resample_trend(pd.concat(frames, ignore_index=True), days_diff)
+        show_markers = days_diff <= 1
+        fig_line = px.line(
+            df_trend,
+            x="fetched_at_jst",
+            y="wait_minutes",
+            color="attraction_name",
+            labels={
+                "fetched_at_jst": "時刻 (JST)",
+                "wait_minutes": "待ち時間 (分)",
+                "attraction_name": "アトラクション",
+            },
+            markers=show_markers,
+        )
+        fig_line.update_layout(
+            height=400,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            plot_bgcolor="white",
+            xaxis=dict(showgrid=True, gridcolor="#f0f0f0"),
+            yaxis=dict(showgrid=True, gridcolor="#f0f0f0"),
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+    else:
+        st.info("選択期間内のデータがありません。")
+
+# ---- 混雑ヒートマップ ----
 st.header("混雑ヒートマップ（時間帯 × アトラクション）")
 
 df_all = query_all_history(start_dt, end_dt)
@@ -178,4 +226,3 @@ if not df_all.empty and df_all["wait_minutes"].notna().any():
     st.dataframe(summary, use_container_width=True, hide_index=True)
 else:
     st.info("統計データがありません。")
-
