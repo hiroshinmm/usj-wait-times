@@ -42,7 +42,7 @@ def resample_trend(df: pd.DataFrame, days: int) -> pd.DataFrame:
     )
 
 
-# ---- デフォルトで選択するアトラクション（訪問予定）----
+# ---- 訪問予定アトラクションと日本語名マッピング ----
 _DEFAULT_ATTRACTIONS = {
     "Mario Kart: Koopa's Challenge™",
     "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence",
@@ -56,6 +56,21 @@ _DEFAULT_ATTRACTIONS = {
     "Flight of the Hippogriff™",
     "Hollywood Dream - The Ride",
     "Mine Cart Madness™",
+}
+
+_JA_NAMES = {
+    "Mario Kart: Koopa's Challenge™":                          "マリオカート〜クッパの挑戦状〜™",
+    "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence": "呪術廻戦 ザ・リアル4-D〜廻轉の時計塔〜",
+    "Detective Conan 4-D Live Show: Jewel Under the Starry Sky": "名探偵コナン4-Dライブショー",
+    "Space Fantasy - The Ride":                                "スペース・ファンタジー・ザ・ライド",
+    "Jurassic Park - The Ride":                                "ジュラシック・パーク・ザ・ライド",
+    "Despicable Me: Minion Mayhem":                            "ミニオン・ハチャメチャ・ライド",
+    "Illumination's Villain-Con Minion Blast":                 "ヴィランコン・ミニオン・ブラスト",
+    "JAWS":                                                    "ジョーズ",
+    "Harry Potter and the Forbidden Journey™":                 "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+    "Flight of the Hippogriff™":                               "フライト・オブ・ザ・ヒッポグリフ™",
+    "Hollywood Dream - The Ride":                              "ハリウッド・ドリーム・ザ・ライド",
+    "Mine Cart Madness™":                                      "ドンキーコング・カントリー マインカート・マッドネス™",
 }
 
 # ---- サイドバー ----
@@ -107,7 +122,8 @@ others  = [n for n in all_names if n not in _DEFAULT_ATTRACTIONS]
 selected_names = []
 st.sidebar.markdown("**訪問予定**")
 for n in planned:
-    if st.sidebar.checkbox(n, value=True, key=f"cb_{n}"):
+    label = _JA_NAMES.get(n, n)
+    if st.sidebar.checkbox(label, value=True, key=f"cb_{n}"):
         selected_names.append(n)
 
 st.sidebar.markdown("**その他**")
