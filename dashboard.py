@@ -1,10 +1,10 @@
-import time
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 from database import init_db, query_all_history, query_attraction_list, query_history, query_latest
 
@@ -28,7 +28,9 @@ now_jst = datetime.now(timezone.utc) + timedelta(hours=9)
 end_dt = datetime.now(timezone.utc)
 start_dt = end_dt - timedelta(days=days_back)
 
-auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=False)
+auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=True)
+if auto_refresh:
+    st_autorefresh(interval=300_000, key="autorefresh")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("データソース: [themeparks.wiki](https://themeparks.wiki)")
@@ -177,7 +179,3 @@ if not df_all.empty and df_all["wait_minutes"].notna().any():
 else:
     st.info("統計データがありません。")
 
-# ---- 自動更新 ----
-if auto_refresh:
-    time.sleep(300)
-    st.rerun()
