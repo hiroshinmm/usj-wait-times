@@ -161,11 +161,19 @@ for n in planned:
     if st.sidebar.checkbox(label, value=True, key=f"cb_{n}"):
         selected_names.append(n)
 
+translated   = [n for n in others if n in _JA_NAMES]
+untranslated = [n for n in others if n not in _JA_NAMES]
+
 st.sidebar.markdown("**その他**")
-for n in others:
-    label = _JA_NAMES.get(n, n)
-    if st.sidebar.checkbox(label, value=False, key=f"cb_{n}"):
+for n in translated:
+    if st.sidebar.checkbox(_JA_NAMES[n], value=False, key=f"cb_{n}"):
         selected_names.append(n)
+
+if untranslated:
+    st.sidebar.markdown("<small>— 未翻訳 —</small>", unsafe_allow_html=True)
+    for n in untranslated:
+        if st.sidebar.checkbox(n, value=False, key=f"cb_{n}"):
+            selected_names.append(n)
 
 st.sidebar.markdown("---")
 st.sidebar.caption("データソース: [themeparks.wiki](https://themeparks.wiki)")
