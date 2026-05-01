@@ -42,8 +42,26 @@ def resample_trend(df: pd.DataFrame, days: int) -> pd.DataFrame:
     )
 
 
+# ---- デフォルトで選択するアトラクション（訪問予定）----
+_DEFAULT_ATTRACTIONS = {
+    "Mario Kart: Koopa's Challenge™",
+    "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence",
+    "Detective Conan 4-D Live Show: Jewel Under the Starry Sky",
+    "Space Fantasy - The Ride",
+    "Jurassic Park - The Ride",
+    "Despicable Me: Minion Mayhem",
+    "JAWS",
+    "Harry Potter and the Forbidden Journey™",
+}
+
 # ---- サイドバー ----
 st.sidebar.title("設定")
+
+auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=True)
+if auto_refresh:
+    st_autorefresh(interval=300_000, key="autorefresh")
+
+st.sidebar.markdown("---")
 
 today_jst = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
 
@@ -81,14 +99,9 @@ if col_b.button("全解除", use_container_width=True):
 
 selected_names = []
 for n in all_names:
-    default = n in all_names[:5]
+    default = n in _DEFAULT_ATTRACTIONS
     if st.sidebar.checkbox(n, value=default, key=f"cb_{n}"):
         selected_names.append(n)
-
-st.sidebar.markdown("---")
-auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=True)
-if auto_refresh:
-    st_autorefresh(interval=300_000, key="autorefresh")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("データソース: [themeparks.wiki](https://themeparks.wiki)")
