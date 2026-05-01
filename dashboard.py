@@ -50,8 +50,12 @@ _DEFAULT_ATTRACTIONS = {
     "Space Fantasy - The Ride",
     "Jurassic Park - The Ride",
     "Despicable Me: Minion Mayhem",
+    "Illumination's Villain-Con Minion Blast",
     "JAWS",
     "Harry Potter and the Forbidden Journey™",
+    "Flight of the Hippogriff™",
+    "Hollywood Dream - The Ride",
+    "Mine Cart Madness™",
 }
 
 # ---- サイドバー ----
