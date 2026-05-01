@@ -65,16 +65,25 @@ days_diff = (end_date - start_date).days + 1
 start_dt = datetime.combine(start_date, datetime.min.time()) - timedelta(hours=9)
 end_dt   = datetime.combine(end_date,   datetime.max.time()) - timedelta(hours=9)
 
-# アトラクション選択
+# アトラクション選択（チェックボックス）
 st.sidebar.markdown("---")
+st.sidebar.markdown("**アトラクション**")
 attraction_df = query_attraction_list()
 all_names = attraction_df["attraction_name"].tolist() if not attraction_df.empty else []
-selected_names = st.sidebar.multiselect(
-    "アトラクション",
-    options=all_names,
-    default=all_names[:5] if len(all_names) >= 5 else all_names,
-    placeholder="アトラクションを選択...",
-)
+
+col_a, col_b = st.sidebar.columns(2)
+if col_a.button("全選択", use_container_width=True):
+    for n in all_names:
+        st.session_state[f"cb_{n}"] = True
+if col_b.button("全解除", use_container_width=True):
+    for n in all_names:
+        st.session_state[f"cb_{n}"] = False
+
+selected_names = []
+for n in all_names:
+    default = n in all_names[:5]
+    if st.sidebar.checkbox(n, value=default, key=f"cb_{n}"):
+        selected_names.append(n)
 
 st.sidebar.markdown("---")
 auto_refresh = st.sidebar.toggle("自動更新 (5分ごと)", value=True)
