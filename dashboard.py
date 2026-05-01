@@ -101,10 +101,18 @@ if col_b.button("全解除", use_container_width=True):
     for n in all_names:
         st.session_state[f"cb_{n}"] = False
 
+planned = [n for n in all_names if n in _DEFAULT_ATTRACTIONS]
+others  = [n for n in all_names if n not in _DEFAULT_ATTRACTIONS]
+
 selected_names = []
-for n in all_names:
-    default = n in _DEFAULT_ATTRACTIONS
-    if st.sidebar.checkbox(n, value=default, key=f"cb_{n}"):
+st.sidebar.markdown("**訪問予定**")
+for n in planned:
+    if st.sidebar.checkbox(n, value=True, key=f"cb_{n}"):
+        selected_names.append(n)
+
+st.sidebar.markdown("**その他**")
+for n in others:
+    if st.sidebar.checkbox(n, value=False, key=f"cb_{n}"):
         selected_names.append(n)
 
 st.sidebar.markdown("---")
