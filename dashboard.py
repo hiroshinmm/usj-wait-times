@@ -59,18 +59,53 @@ _DEFAULT_ATTRACTIONS = {
 }
 
 _JA_NAMES = {
-    "Mario Kart: Koopa's Challenge™":                          "マリオカート〜クッパの挑戦状〜™",
+    # 訪問予定
+    "Mario Kart: Koopa's Challenge™":                           "マリオカート〜クッパの挑戦状〜™",
     "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence": "呪術廻戦 ザ・リアル4-D〜廻轉の時計塔〜",
     "Detective Conan 4-D Live Show: Jewel Under the Starry Sky": "名探偵コナン4-Dライブショー",
-    "Space Fantasy - The Ride":                                "スペース・ファンタジー・ザ・ライド",
-    "Jurassic Park - The Ride":                                "ジュラシック・パーク・ザ・ライド",
-    "Despicable Me: Minion Mayhem":                            "ミニオン・ハチャメチャ・ライド",
-    "Illumination's Villain-Con Minion Blast":                 "ヴィランコン・ミニオン・ブラスト",
-    "JAWS":                                                    "ジョーズ",
-    "Harry Potter and the Forbidden Journey™":                 "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
-    "Flight of the Hippogriff™":                               "フライト・オブ・ザ・ヒッポグリフ™",
-    "Hollywood Dream - The Ride":                              "ハリウッド・ドリーム・ザ・ライド",
-    "Mine Cart Madness™":                                      "ドンキーコング・カントリー マインカート・マッドネス™",
+    "Space Fantasy - The Ride":                                 "スペース・ファンタジー・ザ・ライド",
+    "Jurassic Park - The Ride":                                 "ジュラシック・パーク・ザ・ライド",
+    "Despicable Me: Minion Mayhem":                             "ミニオン・ハチャメチャ・ライド",
+    "Illumination's Villain-Con Minion Blast":                  "ヴィランコン・ミニオン・ブラスト",
+    "JAWS":                                                     "ジョーズ",
+    "Harry Potter and the Forbidden Journey™":                  "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+    "Flight of the Hippogriff™":                                "フライト・オブ・ザ・ヒッポグリフ™",
+    "Hollywood Dream - The Ride":                               "ハリウッド・ドリーム・ザ・ライド",
+    "Mine Cart Madness™":                                       "ドンキーコング・カントリー マインカート・マッドネス™",
+    # その他
+    "Abby's Magical Party":                                     "アビーのマジカル・パーティー",
+    "Abby's Magical Tree":                                      "アビーのマジカル・ツリー",
+    "Amity Boardwalk Games":                                    "アミティ・ボードウォーク・ゲームズ",
+    "Banana Cabana":                                            "バナナ・カバナ",
+    "Bert & Ernie Prop Shop Game Place":                        "バート＆アーニー プロップ・ショップ・ゲームプレイス",
+    "Bert and Ernie's Wonder: The Sea":                         "バートとアーニーのワンダー・ザ・シー",
+    "Big Bird's Big Nest":                                      "ビッグバードのビッグ・ネスト",
+    "Big Bird's Big Top Circus":                                "ビッグバードのビッグトップ・サーカス",
+    "Cookie Monster Slide":                                     "クッキーモンスター・スライド",
+    "Elmo's Bubble Bubble":                                     "エルモのバブルバブル",
+    "Elmo's Go-Go Skateboard":                                  "エルモのゴーゴー・スケートボード",
+    "Elmo's Little Drive":                                      "エルモのリトル・ドライブ",
+    "Ernie's Rubber Duckie Race":                               "アーニーのゴム・アヒルレース",
+    "Festival In The Park":                                     "フェスティバル・イン・ザ・パーク",
+    "Freeze Ray Sliders":                                       "フリーズ・レイ・スライダーズ",
+    "Grover's Construction Company":                            "グローバーのコンストラクション・カンパニー",
+    "Hello Kitty's Cupcake Dream":                              "ハローキティのカップケーキ・ドリーム",
+    "Hollywood Dream - The Ride: Backdrop":                     "ハリウッド・ドリーム・ザ・ライド〜バックドロップ〜",
+    "Moppy's Balloon Trip":                                     "モッピーのバルーン・トリップ",
+    "Power-Up Band™ Key Challenges":                            "パワーアップバンド™ キーチャレンジ",
+    "Sesame's Big Drive":                                       "セサミのビッグ・ドライブ",
+    "Snoopy's Flying Ace Adventure":                            "スヌーピーのグレート・レース",
+    "Space Fantasy - The Ride: CLUB ZEDD REMIX":                "スペース・ファンタジー・ザ・ライド：クラブZEDDリミックス",
+    "Space Killer":                                             "スペース・キラー",
+    "The Flying Dinosaur":                                      "ザ・フライング・ダイナソー",
+    "The Flying Snoopy":                                        "ザ・フライング・スヌーピー",
+    "Water Garden":                                             "ウォーター・ガーデン",
+    "Yoshi's Adventure™":                                       "ヨッシー・アドベンチャー™",
+    # ショー
+    "Jurassic World Baby Dino Adventure":                       "ジュラシック・ワールド・ベイビー・ダイノ・アドベンチャー",
+    "Jurassic World Raptor Alert":                              "ジュラシック・ワールド・ラプター・アラート",
+    "Meet the Hogsmeade Magical Creatures":                     "ミート・ザ・ホグズミード・マジカル・クリーチャーズ",
+    "WaterWorld":                                               "ウォーターワールド",
 }
 
 # ---- サイドバー ----
@@ -128,7 +163,8 @@ for n in planned:
 
 st.sidebar.markdown("**その他**")
 for n in others:
-    if st.sidebar.checkbox(n, value=False, key=f"cb_{n}"):
+    label = _JA_NAMES.get(n, n)
+    if st.sidebar.checkbox(label, value=False, key=f"cb_{n}"):
         selected_names.append(n)
 
 st.sidebar.markdown("---")
