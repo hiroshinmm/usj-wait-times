@@ -8,8 +8,13 @@ import sys
 
 def main():
     print("Cloudflare Tunnel を起動中...")
+    import os
+    cloudflared = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages"
+        r"\Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe\cloudflared.exe"
+    )
     proc = subprocess.Popen(
-        ["cloudflared", "tunnel", "--url", "http://localhost:8501"],
+        [cloudflared, "tunnel", "--url", "http://localhost:8501"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
