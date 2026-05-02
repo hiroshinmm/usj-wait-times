@@ -130,17 +130,24 @@ st.sidebar.markdown("---")
 
 today_jst = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
 
-date_range = st.sidebar.date_input(
-    "表示期間",
-    value=(today_jst, today_jst),
+if "selected_date" not in st.session_state:
+    st.session_state["selected_date"] = today_jst
+
+cd1, cd2, cd3 = st.sidebar.columns(3)
+if cd1.button("今日", use_container_width=True):
+    st.session_state["selected_date"] = today_jst
+if cd2.button("昨日", use_container_width=True):
+    st.session_state["selected_date"] = today_jst - timedelta(days=1)
+if cd3.button("一昨日", use_container_width=True):
+    st.session_state["selected_date"] = today_jst - timedelta(days=2)
+
+selected_date = st.sidebar.date_input(
+    "日付",
+    value=st.session_state["selected_date"],
     max_value=today_jst,
 )
-
-if isinstance(date_range, (list, tuple)):
-    start_date = date_range[0]
-    end_date = date_range[-1]
-else:
-    start_date = end_date = date_range
+st.session_state["selected_date"] = selected_date
+start_date = end_date = selected_date
 
 days_diff = (end_date - start_date).days + 1
 
