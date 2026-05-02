@@ -42,21 +42,32 @@ def resample_trend(df: pd.DataFrame, days: int) -> pd.DataFrame:
     )
 
 
-# ---- 訪問予定アトラクションと日本語名マッピング ----
+# ---- アトラクション分類 ----
+_EP_ATTRACTIONS = {
+    "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence",
+    "JAWS",
+    "Space Fantasy - The Ride: CLUB ZEDD REMIX",
+    "Illumination’s Villain-Con Minion Blast",
+    "Jurassic Park - The Ride",
+}
+
 _DEFAULT_ATTRACTIONS = {
     "Mario Kart: Koopa's Challenge™",
-    "JUJUTSU KAISEN: The Real 4-D — Clock Tower of Recurrence",
     "Detective Conan 4-D Live Show: Jewel Under the Starry Sky",
-    "Space Fantasy - The Ride",
-    "Jurassic Park - The Ride",
-    "Despicable Me: Minion Mayhem",
-    "Illumination's Villain-Con Minion Blast",
-    "JAWS",
     "Harry Potter and the Forbidden Journey™",
     "Flight of the Hippogriff™",
     "Hollywood Dream - The Ride",
+    "Despicable Me: Minion Mayhem",
+}
+
+_RUNNER_UP_ATTRACTIONS = {
+    "Yoshi's Adventure™",
+    "Hollywood Dream - The Ride: Backdrop",
+    "The Flying Dinosaur",
     "Mine Cart Madness™",
 }
+
+_ALL_PRIORITY = _EP_ATTRACTIONS | _DEFAULT_ATTRACTIONS | _RUNNER_UP_ATTRACTIONS
 
 _JA_NAMES = {
     # 訪問予定
@@ -66,7 +77,7 @@ _JA_NAMES = {
     "Space Fantasy - The Ride":                                 "スペース・ファンタジー・ザ・ライド",
     "Jurassic Park - The Ride":                                 "ジュラシック・パーク・ザ・ライド",
     "Despicable Me: Minion Mayhem":                             "ミニオン・ハチャメチャ・ライド",
-    "Illumination's Villain-Con Minion Blast":                  "ヴィランコン・ミニオン・ブラスト",
+    "Illumination’s Villain-Con Minion Blast":                  "ミニオン・ハチャメチャ・ミッション ～大悪党への道～",
     "JAWS":                                                     "ジョーズ",
     "Harry Potter and the Forbidden Journey™":                  "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
     "Flight of the Hippogriff™":                                "フライト・オブ・ザ・ヒッポグリフ™",
@@ -139,27 +150,42 @@ end_dt   = datetime.combine(end_date,   datetime.max.time()) - timedelta(hours=9
 
 # アトラクション選択（チェックボックス）
 st.sidebar.markdown("---")
-st.sidebar.markdown("**アトラクション**")
 attraction_df = query_attraction_list()
 all_names = attraction_df["attraction_name"].tolist() if not attraction_df.empty else []
 
-col_a, col_b = st.sidebar.columns(2)
-if col_a.button("全選択", use_container_width=True):
+ct0, ca0, cb0 = st.sidebar.columns([3.5, 1, 1])
+ct0.markdown("**アトラクション**")
+if ca0.button("全選", key="all_sel", use_container_width=True):
     for n in all_names:
         st.session_state[f"cb_{n}"] = True
-if col_b.button("全解除", use_container_width=True):
+if cb0.button("解除", key="all_clr", use_container_width=True):
     for n in all_names:
         st.session_state[f"cb_{n}"] = False
 
-planned = [n for n in all_names if n in _DEFAULT_ATTRACTIONS]
-others  = [n for n in all_names if n not in _DEFAULT_ATTRACTIONS]
+ep_names      = [n for n in all_names if n in _EP_ATTRACTIONS]
+planned       = [n for n in all_names if n in _DEFAULT_ATTRACTIONS]
+runner_up     = [n for n in all_names if n in _RUNNER_UP_ATTRACTIONS]
+others        = [n for n in all_names if n not in _ALL_PRIORITY]
+
+def _group_section(title, names, key_prefix, default_val=True):
+    ct, ca, cb = st.sidebar.columns([3.5, 1, 1])
+    ct.markdown(f"**{title}**")
+    if ca.button("全選", key=f"{key_prefix}_all", use_container_width=True):
+        for n in names:
+            st.session_state[f"cb_{n}"] = True
+    if cb.button("解除", key=f"{key_prefix}_none", use_container_width=True):
+        for n in names:
+            st.session_state[f"cb_{n}"] = False
+    result = []
+    for n in names:
+        if st.sidebar.checkbox(_JA_NAMES.get(n, n), value=default_val, key=f"cb_{n}"):
+            result.append(n)
+    return result
 
 selected_names = []
-st.sidebar.markdown("**訪問予定**")
-for n in planned:
-    label = _JA_NAMES.get(n, n)
-    if st.sidebar.checkbox(label, value=True, key=f"cb_{n}"):
-        selected_names.append(n)
+selected_names += _group_section("🎯 EP対象",  ep_names,  "ep")
+selected_names += _group_section("✅ 訪問予定", planned,   "pl")
+selected_names += _group_section("🔵 次点候補", runner_up, "ru")
 
 translated   = [n for n in others if n in _JA_NAMES]
 untranslated = [n for n in others if n not in _JA_NAMES]
@@ -193,6 +219,9 @@ if df_latest.empty:
 
 df_operating = df_latest[df_latest["status"] == "OPERATING"].copy()
 df_operating = df_operating.dropna(subset=["wait_minutes"])
+if selected_names:
+    df_operating = df_operating[df_operating["attraction_name"].isin(selected_names)]
+df_operating["attraction_name"] = df_operating["attraction_name"].map(lambda x: _JA_NAMES.get(x, x))
 
 if df_operating.empty:
     st.warning("現在営業中のアトラクションがありません（パーク閉園中の可能性があります）。")
@@ -246,7 +275,7 @@ else:
         df_h = query_history(aid, start_dt, end_dt)
         if not df_h.empty:
             name = attraction_df[attraction_df["attraction_id"] == aid]["attraction_name"].iloc[0]
-            df_h["attraction_name"] = name
+            df_h["attraction_name"] = _JA_NAMES.get(name, name)
             df_h["fetched_at_jst"] = df_h["fetched_at"] + pd.Timedelta(hours=9)
             frames.append(df_h)
 
@@ -276,12 +305,97 @@ else:
     else:
         st.info("選択期間内のデータがありません。")
 
+# ---- 共通データ: 全履歴 ----
+df_all = query_all_history(start_dt, end_dt)
+if selected_names:
+    df_all = df_all[df_all["attraction_name"].isin(selected_names)]
+df_all["attraction_name"] = df_all["attraction_name"].map(lambda x: _JA_NAMES.get(x, x))
+if not df_all.empty:
+    df_all["fetched_at_jst"] = df_all["fetched_at"] + pd.Timedelta(hours=9)
+
+# ---- 時間帯別待ち時間表 ----
+st.header("時間帯別待ち時間")
+
+if not df_all.empty and df_all["wait_minutes"].notna().any():
+    tbl_interval = st.selectbox(
+        "時間間隔", [5, 10, 15, 30, 60], index=1, format_func=lambda x: f"{x}分",
+        key="tbl_interval",
+    )
+    df_tbl = df_all.dropna(subset=["wait_minutes"]).copy()
+    df_tbl["slot"] = df_tbl["fetched_at_jst"].dt.floor(f"{tbl_interval}min")
+
+    slot_pivot = (
+        df_tbl.groupby(["slot", "attraction_name"])["wait_minutes"]
+        .mean()
+        .round(0)
+        .unstack(level="attraction_name")
+    )
+
+    ja_order = [_JA_NAMES.get(n, n) for n in selected_names]
+    slot_pivot = slot_pivot.reindex(columns=[c for c in ja_order if c in slot_pivot.columns])
+
+    full_range = pd.date_range(slot_pivot.index.min(), slot_pivot.index.max(), freq=f"{tbl_interval}min")
+    slot_pivot = slot_pivot.reindex(full_range)
+    slot_pivot.index = slot_pivot.index.strftime("%H:%M")
+    slot_pivot.index.name = "時刻"
+
+    avg_row = slot_pivot.mean(skipna=True).round(0)
+    avg_row.name = "平均"
+    full_table = pd.concat([slot_pivot, avg_row.to_frame().T])
+
+    def _cell_style(v, is_avg=False):
+        bold = "font-weight:bold;" if is_avg else ""
+        base = f"padding:4px 6px;border:1px solid #ddd;text-align:center;{bold}"
+        if pd.isna(v):
+            return base
+        v = float(v)
+        if v < 55:
+            return f"{base}background:#AED6F1;"
+        elif v < 100:
+            return f"{base}background:#2980B9;color:#fff;"
+        elif v < 150:
+            return f"{base}background:#FAD7A0;"
+        elif v < 200:
+            return f"{base}background:#EC7063;"
+        else:
+            return f"{base}background:#2C3E50;color:#fff;"
+
+    th_base = (
+        "padding:4px 2px;border:1px solid #ddd;writing-mode:vertical-lr;"
+        "height:150px;max-height:150px;overflow:hidden;"
+        "vertical-align:bottom;text-align:center;"
+        "white-space:nowrap;min-width:36px;max-width:36px;font-size:12px;"
+    )
+    header_cells = [
+        "<th style='padding:4px 8px;border:1px solid #ddd;white-space:nowrap;font-size:12px'>時刻</th>"
+    ] + [f"<th style='{th_base}'>{col}</th>" for col in full_table.columns]
+
+    rows_html = []
+    for idx, row in full_table.iterrows():
+        is_avg = (idx == "平均")
+        td_idx = f"padding:4px 8px;border:1px solid #ddd;white-space:nowrap;font-size:12px;{'font-weight:bold;' if is_avg else ''}"
+        cells = [f"<td style='{td_idx}'>{idx}</td>"]
+        for col in full_table.columns:
+            val = row[col]
+            display = "−" if pd.isna(val) else str(int(val))
+            cells.append(f"<td style='{_cell_style(val, is_avg)}'>{display}</td>")
+        rows_html.append(f"<tr>{''.join(cells)}</tr>")
+
+    html_tbl = (
+        "<div style='overflow-x:auto'>"
+        "<table style='border-collapse:collapse;font-size:13px'>"
+        f"<thead><tr>{''.join(header_cells)}</tr></thead>"
+        f"<tbody>{''.join(rows_html)}</tbody>"
+        "</table></div>"
+    )
+    st.markdown(html_tbl, unsafe_allow_html=True)
+else:
+    st.info("表示するデータがありません。")
+
 # ---- 混雑ヒートマップ ----
 st.header("混雑ヒートマップ（時間帯 × アトラクション）")
 
-df_all = query_all_history(start_dt, end_dt)
 if not df_all.empty and df_all["wait_minutes"].notna().any():
-    df_all["fetched_at_jst"] = df_all["fetched_at"] + pd.Timedelta(hours=9)
     df_all["hour"] = df_all["fetched_at_jst"].dt.hour
 
     pivot = (
@@ -291,8 +405,11 @@ if not df_all.empty and df_all["wait_minutes"].notna().any():
         .round(1)
         .unstack(level="hour")
     )
+    if selected_names:
+        all_ja = [_JA_NAMES.get(n, n) for n in selected_names]
+        pivot = pivot.reindex(all_ja)
 
-    if not pivot.empty:
+    if not pivot.dropna(how="all").empty:
         fig_heat = px.imshow(
             pivot,
             labels=dict(x="時刻 (時)", y="アトラクション", color="平均待ち (分)"),
